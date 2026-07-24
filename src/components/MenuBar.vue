@@ -155,6 +155,17 @@ function pickSource(id) {
   inputMenu.value = false
   system.setInputSource(id)
 }
+
+// Emoji & Symbols panel (macOS Character Viewer)
+const emojiOpen = ref(false)
+const EMOJI_SET = [
+  '😀', '😄', '😂', '🙂', '😉', '😍', '🥰', '😎', '🤔', '🙌', '👍', '👏', '🙏', '💪', '👀', '🎉', '✨', '🔥',
+  '❤️', '💯', '✅', '⚡', '🌟', '🍎', '🍏', '☕', '🚀', '💡', '📌', '✏️', '💻', '⌘', '⚙️', '🔒', '∞', '©',
+]
+function pickEmoji(ch) {
+  system.clipboard = ch
+  emojiOpen.value = false
+}
 </script>
 
 <template>
@@ -251,12 +262,31 @@ function pickSource(id) {
   <template v-if="inputMenu">
     <div class="menu-backdrop" @pointerdown="inputMenu = false"></div>
     <div class="dropdown glass-strong input-panel">
-      <div class="src-title">Input Sources</div>
       <button v-for="s in system.inputSources" :key="s.id" class="row" @click="pickSource(s.id)">
         <span class="check">{{ s.id === system.inputSource ? '✓' : '' }}</span>
         <span class="src-badge">{{ s.glyph }}</span>
         <span class="lbl">{{ s.name }}</span>
       </button>
+      <div class="sep"></div>
+      <button class="row" @click="inputMenu = false; emojiOpen = true">
+        <span class="check"></span>
+        <span class="lbl">Show Emoji &amp; Symbols…</span>
+      </button>
+      <button class="row" @click="inputMenu = false; wm.openApp('settings')">
+        <span class="check"></span>
+        <span class="lbl">Open Keyboard Settings…</span>
+      </button>
+    </div>
+  </template>
+
+  <template v-if="emojiOpen">
+    <div class="menu-backdrop" @pointerdown="emojiOpen = false"></div>
+    <div class="emoji-panel glass-strong">
+      <div class="emoji-title">Emoji &amp; Symbols</div>
+      <div class="emoji-grid">
+        <button v-for="ch in EMOJI_SET" :key="ch" class="emoji-cell" :title="`Copy ${ch} to clipboard`" @click="pickEmoji(ch)">{{ ch }}</button>
+      </div>
+      <div class="emoji-hint">Click to copy to clipboard</div>
     </div>
   </template>
 
@@ -498,6 +528,45 @@ function pickSource(id) {
   font-size: 11px;
   font-weight: 700;
   flex: none;
+}
+.emoji-panel {
+  position: fixed;
+  top: 32px;
+  right: 12px;
+  z-index: 5002;
+  width: 300px;
+  padding: 12px;
+  border-radius: 14px;
+  border: 0.5px solid var(--border);
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.3);
+  animation: siri-in 0.2s cubic-bezier(0.32, 0.72, 0.35, 1);
+}
+.emoji-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-dim);
+  margin-bottom: 8px;
+}
+.emoji-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 4px;
+}
+.emoji-cell {
+  font-size: 20px;
+  padding: 5px 0;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+}
+.emoji-cell:hover {
+  background: var(--hover);
+}
+.emoji-hint {
+  margin-top: 8px;
+  font-size: 11px;
+  color: var(--text-dim);
+  text-align: center;
 }
 .siri-panel {
   position: fixed;

@@ -53,6 +53,10 @@ export const useSystemStore = defineStore('system', {
       { name: 'Magic Keyboard', connected: false, battery: 41 },
     ],
     audioOutput: 'speakers', // 'speakers' | 'airpods'
+    airdropMode: 'contacts', // 'contacts' | 'everyone' (used when airdrop is on)
+    focusMode: 'dnd', // 'dnd' | 'personal' | 'work' (used when focus is on)
+    lowPowerMode: false,
+    emojiPanelOpen: false,
     inputSource: 'US',
     dockHidden: [], // pinned app ids the user removed from the Dock
     dockExtraPinned: [], // unpinned apps the user chose to keep in the Dock
@@ -139,6 +143,20 @@ export const useSystemStore = defineStore('system', {
       this.loginItems = this.loginItems.includes(id)
         ? this.loginItems.filter((x) => x !== id)
         : [...this.loginItems, id]
+    },
+    setAirdrop(mode) {
+      if (mode === 'off') this.airdrop = false
+      else {
+        this.airdrop = true
+        this.airdropMode = mode
+      }
+    },
+    setFocusMode(mode) {
+      if (mode === 'off') this.focus = false
+      else {
+        this.focus = true
+        this.focusMode = mode
+      }
     },
     clearMedia(appName) {
       if (!appName || this.nowPlaying?.app === appName) {

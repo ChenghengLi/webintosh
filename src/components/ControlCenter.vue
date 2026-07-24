@@ -5,6 +5,8 @@ import { useSystemStore } from '../stores/system'
 const system = useSystemStore()
 const wifiOpen = ref(false)
 const btOpen = ref(false)
+const airdropOpen = ref(false)
+const focusOpen = ref(false)
 
 const airpods = computed(() => system.btDevices.find((d) => d.name === 'AirPods Pro'))
 const airpodsConnected = computed(() => system.bluetooth && !!airpods.value?.connected)
@@ -115,8 +117,8 @@ function mediaPrev() {
 
           <!-- AirDrop -->
           <div class="card conn">
-            <div class="conn-row" @click="system.airdrop = !system.airdrop">
-              <span class="ico blue" :class="{ off: !system.airdrop }">
+            <div class="conn-row" :class="{ expandable: system.airdrop }" @click="airdropOpen = system.airdrop ? !airdropOpen : true">
+              <span class="ico blue" :class="{ off: !system.airdrop }" @click.stop="system.airdrop = !system.airdrop">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
                   <circle cx="12" cy="19" r="2" fill="currentColor" stroke="none" />
                   <path d="M6 19a6 6 0 0 1 12 0" />
@@ -126,9 +128,24 @@ function mediaPrev() {
               </span>
               <span class="meta">
                 <b>AirDrop</b>
-                <small>{{ system.airdrop ? 'Contacts Only' : 'Off' }}</small>
+                <small>{{ system.airdrop ? (system.airdropMode === 'contacts' ? 'Contacts Only' : 'Everyone') : 'Off' }}</small>
               </span>
-              <span class="chev">›</span>
+              <span class="chev" :class="{ down: airdropOpen && system.airdrop }">›</span>
+            </div>
+            <div class="expand" :class="{ open: airdropOpen && system.airdrop }">
+              <div class="expand-inner">
+                <div class="sublist">
+                  <button class="subrow" @click="system.setAirdrop('contacts')">
+                    <span class="check">{{ system.airdrop && system.airdropMode === 'contacts' ? '✓' : '' }}</span>Contacts Only
+                  </button>
+                  <button class="subrow" @click="system.setAirdrop('everyone')">
+                    <span class="check">{{ system.airdrop && system.airdropMode === 'everyone' ? '✓' : '' }}</span>Everyone for 10 Minutes
+                  </button>
+                  <button class="subrow" @click="system.setAirdrop('off')">
+                    <span class="check">{{ !system.airdrop ? '✓' : '' }}</span>Receiving Off
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -171,18 +188,39 @@ function mediaPrev() {
             </button>
           </div>
 
-          <!-- Do Not Disturb -->
-          <button class="card dnd" :class="{ on: system.focus }" @click="system.focus = !system.focus">
-            <span class="ico purple" :class="{ off: !system.focus }">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" />
-              </svg>
-            </span>
-            <span class="meta">
-              <b>Do Not Disturb</b>
-              <small>{{ system.focus ? 'On' : 'Off' }}</small>
-            </span>
-          </button>
+          <!-- Focus -->
+          <div class="card conn dnd-card" :class="{ on: system.focus }">
+            <div class="conn-row" :class="{ expandable: system.focus }" @click="focusOpen = system.focus ? !focusOpen : true">
+              <span class="ico purple" :class="{ off: !system.focus }" @click.stop="system.focus = !system.focus">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" />
+                </svg>
+              </span>
+              <span class="meta">
+                <b>{{ { dnd: 'Do Not Disturb', personal: 'Personal', work: 'Work' }[system.focusMode] || 'Focus' }}</b>
+                <small>{{ system.focus ? 'On' : 'Off' }}</small>
+              </span>
+              <span class="chev" :class="{ down: focusOpen && system.focus }">›</span>
+            </div>
+            <div class="expand" :class="{ open: focusOpen && system.focus }">
+              <div class="expand-inner">
+                <div class="sublist">
+                  <button class="subrow" @click="system.setFocusMode('dnd')">
+                    <span class="check">{{ system.focus && system.focusMode === 'dnd' ? '✓' : '' }}</span>Do Not Disturb
+                  </button>
+                  <button class="subrow" @click="system.setFocusMode('personal')">
+                    <span class="check">{{ system.focus && system.focusMode === 'personal' ? '✓' : '' }}</span>Personal
+                  </button>
+                  <button class="subrow" @click="system.setFocusMode('work')">
+                    <span class="check">{{ system.focus && system.focusMode === 'work' ? '✓' : '' }}</span>Work
+                  </button>
+                  <button class="subrow" @click="system.setFocusMode('off')">
+                    <span class="check">{{ !system.focus ? '✓' : '' }}</span>Off
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -235,6 +273,27 @@ function mediaPrev() {
             <span class="out-batt" v-if="airpodsConnected">{{ airpodsBattery }}%</span>
             <span class="check">{{ system.audioOutput === 'airpods' ? '✓' : '' }}</span>
           </button>
+        </div>
+      </div>
+
+      <!-- Battery -->
+      <div class="card conn">
+        <div class="conn-row">
+          <span class="ico green">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="2" y="8" width="17" height="8" rx="2" />
+              <path d="M22 11v2" stroke-linecap="round" />
+              <rect x="4" y="10" :width="Math.max(2, 13 * system.battery / 100)" height="4" rx="1" fill="currentColor" stroke="none" />
+            </svg>
+          </span>
+          <span class="meta">
+            <b>Battery</b>
+            <small>{{ system.battery }}% — Power Adapter</small>
+          </span>
+        </div>
+        <div class="conn-row switch-row" @click="system.lowPowerMode = !system.lowPowerMode">
+          <span class="meta"><b>Low Power Mode</b></span>
+          <span class="switch" :class="{ on: system.lowPowerMode }"><span class="knob"></span></span>
         </div>
       </div>
     </div>
@@ -323,6 +382,39 @@ function mediaPrev() {
 }
 .ico.purple {
   background: #5e5ce6;
+}
+.ico.green {
+  background: #34c759;
+}
+.switch-row {
+  border-top: 0.5px solid var(--border);
+  cursor: default;
+}
+.switch {
+  width: 38px;
+  height: 22px;
+  border-radius: 11px;
+  background: rgba(128, 128, 128, 0.35);
+  position: relative;
+  transition: background 0.18s;
+  flex: none;
+}
+.switch.on {
+  background: #34c759;
+}
+.switch .knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  transition: transform 0.18s;
+}
+.switch.on .knob {
+  transform: translateX(16px);
 }
 .ico.off {
   background: rgba(128, 128, 128, 0.45);
